@@ -24,17 +24,13 @@
              width: 100%;
              position: relative;
          }
-         paper-button.fancy {
-            background: rgba(0,0,255,0.5);
-             color: white;
-         }
     </style>
     <simple-zone min-value="{{min}}" max-value="{{max}}">
         <template  is="dom-repeat" items="{{objects}}">
             <simple-el index="{{index}}"
                         top-pos=-20
-                        is-selected={{item.selected}}
-                        hover={{item.hover}}
+                        selected={{item.selected}}
+                        selecting={{item.selecting}}
                         value="{{item.value}}"
                         ></simple-el>
         </template>
@@ -109,7 +105,6 @@
     });
   </script>
 </dom-module>
-
 <script>
     HighlightBehavior = {
       properties: {
@@ -117,7 +112,7 @@
             type: String,
             value: "none"
           },
-          hover:{
+          selecting:{
             type:Boolean,
             value: false,
             reflectToAttribute:true,
@@ -131,22 +126,22 @@
       },
 
       _handleSelected:function(e){
-          if(this.isSelected){
+          if(this.selected){
               if(e.ctrlKey){
-                  this.isSelected = false;
+                  this.selected = false;
                   this.visibility = "none";
               }
           }else{
               if(!e.ctrlKey){
                   var _children = Polymer.dom(Polymer.dom(this).parentNode).querySelectorAll("simple-el");
                   for (var i = 0; i < _children.length; i++) {
-                          if( _children[i].isSelected === true){
-                              _children[i].isSelected = false;
+                          if( _children[i].selected === true){
+                              _children[i].selected = false;
                           }
 
                   }
               }
-              this.isSelected = true;
+              this.selected = true;
               this.visibility = "block";
           }
       },
@@ -154,10 +149,11 @@
         // var _zone = Polymer.dom(this).parentNode;
         // var _testEl = Polymer.dom(_zone).parentNode.parentNode;
         // console.log(_testEl);
-        this.hover = true;
+        this.set('selecting',true);
+        this.selecting = true;
       },
       _removeHighlight:function(){
-        this.hover = false;
+        this.set('selecting',false);
       }
     };
 </script>
@@ -216,24 +212,23 @@
         });
   </script>
 </dom-module>
-
 <dom-module id="simple-el">
     <template>
         <style>
              :host {
               display: block;
             }
-            :host[hover] > .item{
+            :host[selecting] > .item{
               stroke:blue;
               fill:blue;
             }
-            :host[is-selected] > .item{
+            :host[selected] > .item{
               stroke: orange;
               fill: orange;
             }
-            :host[is-selected][hover] > .item{
-              stroke: rgba(255,153,0,0.3);
-              fill: rgba(255,153,0,0.3);
+            :host[selected][selecting] > .item{
+              stroke: rgba(255,153,0,0.7);
+              fill: rgba(255,153,0,0.7);
             }
             .item{
                 position: absolute;
@@ -276,15 +271,14 @@
             },
             properties: {
                 position: {
-                    type: Number,
-                    notify:true
+                    type: Number
                 },
                 isDragging: {
                     type: Boolean,
                     value: false,
                     reflectToAttribute: true
                 },
-                isSelected: {
+                selected: {
                     type: Boolean,
                     value: false,
                     reflectToAttribute: true,
@@ -336,7 +330,7 @@
                 var _parent = Polymer.dom(this).parentNode;
                 var _children = Polymer.dom(_parent).querySelectorAll("simple-el");
                 for(var i=0;i<_children.length;i++){
-                    if(_children[i].isSelected){
+                    if(_children[i].selected){
                         if(!_children[i].isDragging){
                         _children[i].isDragging = true;
                         }
@@ -386,7 +380,7 @@
         });
   </script>
 </dom-module>
-  <script>
+<script>
     DraggableBehavior = {
 
       properties: {
@@ -465,7 +459,10 @@
         background: orange;
       }
       :host[selecting]{
-        background: yellow;
+        background: blue;
+      }
+      :host[selected][selecting]{
+        background: rgba(255,153,0,0.7);
       }
     </style>
     {{name}}
@@ -492,13 +489,14 @@
         selecting:{
           type:Boolean,
           value:false,
-          reflectToAttribute: true
+          reflectToAttribute: true,
+          notify:true
         },
         selected:{
           type:Boolean,
           value:false,
           reflectToAttribute: true,
-          observer:'_checkSelectStatus'
+          notify:true
         }
       },
       _checkSelectStatus:function(selected){
@@ -515,14 +513,15 @@
             }
           }else{
             if(!e.ctrlKey){
-              var _zone = Polymer.dom(this).parentNode;
-              var _thumbNails = _zone.queryAllEffectiveChildren('thumb-el[selectable]')
-              for(var i=0;i<_thumbNails.length;i++){
-                if(!_thumbNails[i].selecting && _thumbNails[i].selected){
-                  _thumbNails[i].set('selecting',false);
-                  _thumbNails[i].set('selected',false);
-                }
-              }
+              this.fire('deselect-all');
+              // var _zone = Polymer.dom(this).parentNode;
+              // var _thumbNails = _zone.querySelectorAll('thumb-el[selectable]')
+              // for(var i=0;i<_thumbNails.length;i++){
+              //   if(!_thumbNails[i].selecting && _thumbNails[i].selected){
+              //     _thumbNails[i].set('selecting',false);
+              //     _thumbNails[i].set('selected',false);
+              //   }
+              // }
             }
             this.set('selected',true);
           }
@@ -555,15 +554,21 @@
       text-align: center;
     }
     :host[hover]{
-      background: yellow;
+      background: rgba(255,153,0,0.7);
     }
     </style>
     {{name}}
+    {{model.params.param01}}
+    {{model.params.param02}}
+    {{model.params.param03}}
   </template>
   <script>
     Polymer({
       is:'viewer-el',
       properties:{
+        model:{
+          type:Object,
+        },
         name:{
           type: String,
           value: '',
@@ -583,19 +588,10 @@
   <template>
     <style>
       :host{
-        /*flex: 1;*/
-        /*display:flex;
-        justify-content: space-around;
-        flex-flow: row wrap;
-        height:100vh;*/
-        /*width: 100%;
-        height: 100%;*/
-        /*border:5px solid blue;*/
         flex: 1;
         display: flex;
         flex-flow: row wrap;
         justify-content: space-around;
-        /*background: blue;*/
       }
       :host > div.selector{
         position: absolute;
@@ -603,12 +599,24 @@
       }
 
     </style>
-    <content></content>
+    <!-- <content></content> -->
+    <template  is="dom-repeat"
+               items="{{objects}}">
+      <thumb-el name="{{item.uid}}"
+                selecting="{{item.selecting}}"
+                selected="{{item.selected}}"
+                selectable
+                on-deselect-all="_deselectAll"
+                ></thumb-el>
+    </template>
   </template>
   <script>
     Polymer({
       is: 'zone-el',
       properties:{
+        objects:{
+          type:Array
+        },
         _startX:{
           type:Number,
           value:0
@@ -639,7 +647,7 @@
         var endX = e.pageX;
         var box = this._createBoxSelector(this._startX,this._startY,endX,endY);
         this._drawSeletor(this.$$('#boxselector'),box);
-        var thumbNails = this.queryAllEffectiveChildren('thumb-el[selectable]');
+        var thumbNails = this.querySelectorAll('thumb-el[selectable]');
         for(var i=0;i<thumbNails.length;i++){
           var thumbNailBox = this._createBoxSelector(thumbNails[i].getBoundingClientRect().left,
                                                      thumbNails[i].getBoundingClientRect().top,
@@ -662,7 +670,7 @@
         Polymer.dom(this.root).removeChild(this.$$('#boxselector'))
         Polymer.dom.flush();
         var selectorBox = this._createBoxSelector(this._startX,this._startY,e.pageX,e.pageY);
-        var thumbNails = this.queryAllEffectiveChildren('thumb-el[selectable]');
+        var thumbNails = this.querySelectorAll('thumb-el[selectable]');
         for(var i=0;i<thumbNails.length;i++){
           var thumbNailBox = this._createBoxSelector(thumbNails[i].getBoundingClientRect().left,
                                                      thumbNails[i].getBoundingClientRect().top,
@@ -713,8 +721,16 @@
       },
       _overLap(thumbNail,selectorBox){
         return (selectorBox.beginX <= thumbNail.endX && selectorBox.endX >= thumbNail.beginX) && (selectorBox.beginY <= thumbNail.endY && selectorBox.endY>= thumbNail.beginY)
+      },
+      _deselectAll:function(){
+        var _thumbNails = this.querySelectorAll('thumb-el[selectable]')
+        for(var i=0;i<_thumbNails.length;i++){
+          if(!_thumbNails[i].selecting && _thumbNails[i].selected){
+            _thumbNails[i].set('selecting',false);
+            _thumbNails[i].set('selected',false);
+          }
+        }
       }
-
     })
   </script>
 </dom-module>
@@ -728,13 +744,158 @@
         position: absolute;
         background: white;
       }
+      .slider-parent{
+        padding: 15px 10px;
+      }
     </style>
-    <content></content>
+    <template is="dom-if"  if="{{ready}}" >
+      <template is="dom-repeat" delay=1000 items="{{parametersCollection}}">
+        <div class="slider-parent">
+          <test-el objects="{{item.collection}}"></test-el>
+        </div>
+      </template>
+    </template>
   </template>
   <script>
     Polymer({
       is:'sliders-zone',
-      behaviors: [DraggableBehavior]
+      properties:{
+        objects:{
+          type:Array
+        },
+        parametersCollection:{
+          type:Array,
+          value:function(){
+              return [];
+          },
+          notify:true
+        },
+        ready:{
+            type: Boolean,
+            value:false,
+            notify:true
+        }
+      },
+      observers:[
+        '_parametersCollectionChanged(parametersCollection.*)'
+      ],
+      _parametersCollectionChanged:function(cr){
+        if(cr.path.includes("value")){
+            var nameSubpath = cr.path.indexOf('.value');
+            var itempath = cr.path.substring(0, nameSubpath);
+            var item = this.get(itempath);
+            var i = this._getItemIndex(item)
+            this.set('params.'+item.paramNumber,item.value,this.objects[i])
+            this.notifyPath('objects.'+i+'.params.'+item.paramNumber);
+        }
+        if(cr.path.includes("selected")){
+            var nameSubpath = cr.path.indexOf('.selected');
+            var itempath = cr.path.substring(0, nameSubpath);
+            var item = this.get(itempath);
+            var i = this._getItemIndex(item)
+            this.set('selected',item.selected,this.objects[i])
+            this.notifyPath('objects.'+i+'.selected');
+        }
+        if(cr.path.includes("selecting")){
+            var nameSubpath = cr.path.indexOf('.selecting');
+            var itempath = cr.path.substring(0, nameSubpath);
+            var item = this.get(itempath);
+            var i = this._getItemIndex(item)
+            this.set('selecting',item.selecting,this.objects[i])
+            this.notifyPath('objects.'+i+'.selecting');
+        }
+      },
+      behaviors: [DraggableBehavior],
+      _toArray:function(jsonObject,uid){
+        if(jsonObject){
+          return Object.keys(jsonObject).map(function(key){
+              return {
+                  "uid": uid,
+                  "paramNumber": key,
+                  "value": jsonObject[key]
+              }
+          });
+        }else {
+          return null;
+        }
+      },
+      attached: function() {
+        this._createSliders(this.objects);
+      },
+      _createSliders:function(models){
+          var paramsLength = Object.keys(models[0].params).length;
+          for(var i=0;i<paramsLength;i++){
+              this.parametersCollection.push({collection:[]});
+          }
+          for(var k=0;k<models.length;k++){
+              var jsonArray = this._toArray(models[k].params,models[k].uid);
+              for(var j=0;j<jsonArray.length;j++){
+                  this.parametersCollection[j].collection.push(jsonArray[j]);
+              }
+          }
+          this.ready = true;
+      },
+      _getItemIndex(item){
+        var index;
+        for(var i=0;i<this.objects.length;i++){
+          if(this.get('uid',this.objects[i])==item.uid){
+            index = i;
+            break;
+          }
+        }
+        return index;
+      }
+    })
+  </script>
+</dom-module>
+<dom-module id="models-provider">
+  <script>
+    Polymer({
+      is:'models-provider',
+      properties:{
+        objects:{
+          type:Array,
+          notify:true,
+          value:function(){
+            return [
+              {uid:'qwe',params:{param01:10,param02:56,param03:23}},
+              {uid:'ads',params:{param01:30,param02:67,param03:32}},
+              {uid:'zxc',params:{param01:50,param02:34,param03:65}}
+            ];
+          }
+        }
+      }
+    })
+  </script>
+</dom-module>
+<dom-module id="selected-thumbnails">
+  <template>
+    <style>
+      :host{
+        display: flex;
+        flex-flow: row wrap;
+        justify-content: space-around;
+      }
+    </style>
+    <template is="dom-repeat"
+              items="{{objects}}"
+              filter="_isSelected" observe="selected">
+      <viewer-el name="{{item.uid}}"
+                 model="{{item}}"
+                 hover="{{item.hover}}"></viewer-el>
+    </template>
+  </template>
+  <script>
+    Polymer({
+      is:'selected-thumbnails',
+      properties:{
+        objects:{
+          type:Array
+        }
+      },
+      _isSelected:function(item){
+        return (item.selected == true)
+      }
     })
   </script>
 </dom-module>
@@ -768,35 +929,35 @@
       sliders-zone > *{
         padding: 15px 10px;
       }
+      .debugger{
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        background: white;
+        align-items: center;
+      }
     </style>
+    <models-provider objects="{{objects}}"></models-provider>
     <div class="toolbar">
       <span class="title">Models</span>
     </div>
     <div class="content">
-      <sliders-zone>
-        <template is="dom-repeat" items="{{params}}">
-          <div class="slider-parent"><test-el objects="{{item}}"></test-el></div>
-        </template>
-
-      </sliders-zone>
-      <div class="selected-items">
-        <template id="selectecthumbnails" is="dom-repeat"
-                                          items="{{objects}}"
-                                          filter="_isSelected" observe="selected">
-          <viewer-el name="{{item.uid}}"
-                     hover="{{item.hover}}"></viewer-el>
+      <div class="debugger">
+        <template  is="dom-repeat" items="{{objects}}" >
+          <div>
+            uid:{{item.uid}} <br>
+            param01:{{item.params.param01}} <br>
+            param02:{{item.params.param02}} <br>
+            param03:{{item.params.param03}} <br>
+            selected:{{item.selected}} <br>
+            selecting:{{item.selecting}}
+          </div>
         </template>
       </div>
-      <zone-el on-select-thumb='_handleSelection'>
-        <template id="thumbnails" is="dom-repeat"
-                                  items="{{objects}}"
-                                  >
-          <thumb-el name="{{item.uid}}"
-                    selecting="{{item.hover}}"
-                    selected="{{item.selected}}"
-                    selectable></thumb-el>
-        </template>
-      </zone-el>
+      <sliders-zone objects="{{objects}}"></sliders-zone>
+      <selected-thumbnails objects="{{objects}}"></selected-thumbnails>
+      <zone-el objects="{{objects}}"></zone-el>
     </div>
 
   </template>
@@ -804,49 +965,12 @@
     Polymer({
       is:'app-el',
       properties:{
-        params:{
-          type:Array,
-          value:function(){
-            return [
-              [{param:'param01',uid:'qwe',value:10},{param:'param01',uid:'asd',value:30},{param:'param01',uid:'zxc',value:50}],
-              [{param:'param02',uid:'qwe',value:56},{param:'param02',uid:'asd',value:67},{param:'param02',uid:'zxc',value:34}],
-              [{param:'param03',uid:'qwe',value:23},{param:'param03',uid:'asd',value:32},{param:'param03',uid:'zxc',value:65}],
-            ];
-          },
-          notify:true
-        },
-        objects:{
-          type:Array,
-          value:function(){
-            return [
-              {uid:'qwe'},
-              {uid:'ads'},
-              {uid:'zxc'}
-            ];
-          },
-          notify: true
-        }
-      },
-      observers:[
-        'paramHasChanged(params.*)'
-      ],
-      _handleSelection:function(e){
-        if(e.detail.selected){
-          console.log(e.detail)
-        }else{
-          console.log(e.detail)
-        }
-      },
 
-      paramHasChanged:function(cr){
-        // console.log(cr);
-      },
-      _isSelected:function(item){
-        return (item.selected == true)
       }
     })
   </script>
 </dom-module>
+
 <app-el></app-el>
 
 </body>
