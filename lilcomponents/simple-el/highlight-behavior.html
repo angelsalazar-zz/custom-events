@@ -1,0 +1,37 @@
+<script>
+    HighlightBehavior = {
+      properties: {
+          visibility :{
+            type: String,
+            value: "none"
+          }
+      },
+      listeners: {
+        mousedown: '_handleSelected'
+      },
+
+      _handleSelected:function(e){
+          if(this.isSelected){
+              if(e.ctrlKey){
+                  this.isSelected = false;
+                  this.class = '';
+                  this.visibility = "none";
+              }
+          }else{
+              if(!e.ctrlKey){
+                  var _children = Polymer.dom(Polymer.dom(this).parentNode).querySelectorAll("simple-el");
+                  for (var i = 0; i < _children.length; i++) {
+                          if( _children[i].isSelected === true){
+                              _children[i].isSelected = false;
+                              _children[i].class = '';
+                          }
+
+                  }
+              }
+              this.isSelected = true;
+              this.class = 'highlighted';
+              this.visibility = "block";
+          }
+      }
+    };
+</script>

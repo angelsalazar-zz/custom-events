@@ -1,0 +1,853 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="uft-8">
+  <meta name="viewport" content="width=device-width">
+  <title>customstyle</title>
+  <base href="http://polygit.org/components/">
+  <script src="webcomponentsjs/webcomponents-lite.min.js"></script>
+  <link rel="import" href="polymer/polymer.html">
+  <style>
+    body{
+      padding: 0;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+<dom-module id="test-el">
+  <template>
+     <style>
+         :host {
+             display: block;
+             height: 22px;
+             width: 100%;
+             position: relative;
+         }
+         paper-button.fancy {
+            background: rgba(0,0,255,0.5);
+             color: white;
+         }
+    </style>
+    <simple-zone min-value="{{min}}" max-value="{{max}}">
+        <template  is="dom-repeat" items="{{objects}}">
+            <simple-el index="{{index}}"
+                        top-pos=-20
+                        is-selected={{item.selected}}
+                        hover={{item.hover}}
+                        value="{{item.value}}"
+                        ></simple-el>
+        </template>
+    </simple-zone>
+  </template>
+  <script>
+      Polymer({
+          is: 'test-el',
+          properties: {
+            min:{
+              type:Number,
+              value:0,
+              reflectToAttribute: true
+            },
+            max:{
+              type:Number,
+              value:100,
+              reflectToAttribute: true
+            },
+            objects: {
+              type: Array,
+                value:function(){
+                  return [];
+                },
+              notify:true
+            }
+
+          },
+          // observers:['objectsPositionChanged(objects.*)'],
+          // objectsPositionChanged:function(changeObject){
+          //   if(changeObject.path.includes("value")){
+          //       var nameSubpath = changeObject.path.indexOf('.value');
+          //       var itempath = changeObject.path.substring(0, nameSubpath);
+          //       var item = this.get(itempath);
+          //       var index = changeObject.base.indexOf(item);
+          //       // var _thumbNail = this._searchModelByUid(item.uid);
+          //       // USE SET METHOD WHEN MUTATING OBJECTS OR ARRAYS,
+          //       // never use this approach _thumbNail.model.params.p1 = item.value;
+          //       //param: path (string)
+          //       //param: newValue (String,Number,Boolean)
+          //       // element.set(path,newValue);
+          //       // _thumbNail.set('model.params.'+item.param,item.value);
+          //       // console.log(_thumbNail.model.params);
+          //   }
+          //   if(changeObject.path.includes("focused")){
+          //       var nameSubpath = changeObject.path.indexOf('.focused');
+          //       var itempath = changeObject.path.substring(0, nameSubpath);
+          //       var item = this.get(itempath);
+          //       var index = changeObject.base.indexOf(item);
+          //       // if(item.focused){
+          //       //   var _thumbNail = this._searchModelByUid(item.uid);
+          //       //   _thumbNail.set('hover',true);
+          //       // }else {
+          //       //   var _thumbNail = this._searchModelByUid(item.uid);
+          //       //   _thumbNail.set('hover',false);
+          //       // }
+          //
+          //   }
+          // },
+          _addSimpleEl:function(){
+              var pos =  parseInt(this.str);
+              this.push('objects', {value: pos});
+              this.str = '';
+          },
+          _searchModelByUid:function(uid){
+            var _slidersWrapper = Polymer.dom(this).parentNode;
+            var _wrapper = Polymer.dom(_slidersWrapper).parentNode;
+            var _thumbnails = Polymer.dom(_wrapper).querySelector('thumb-nail#'+uid);
+            return _thumbnails;
+          },
+
+    });
+  </script>
+</dom-module>
+
+<script>
+    HighlightBehavior = {
+      properties: {
+          visibility :{
+            type: String,
+            value: "none"
+          },
+          hover:{
+            type:Boolean,
+            value: false,
+            reflectToAttribute:true,
+            notify:true
+          }
+      },
+      listeners: {
+        mousedown: '_handleSelected',
+        mouseenter: '_addHightlight',
+        mouseleave: '_removeHighlight'
+      },
+
+      _handleSelected:function(e){
+          if(this.isSelected){
+              if(e.ctrlKey){
+                  this.isSelected = false;
+                  this.visibility = "none";
+              }
+          }else{
+              if(!e.ctrlKey){
+                  var _children = Polymer.dom(Polymer.dom(this).parentNode).querySelectorAll("simple-el");
+                  for (var i = 0; i < _children.length; i++) {
+                          if( _children[i].isSelected === true){
+                              _children[i].isSelected = false;
+                          }
+
+                  }
+              }
+              this.isSelected = true;
+              this.visibility = "block";
+          }
+      },
+      _addHightlight:function(){
+        // var _zone = Polymer.dom(this).parentNode;
+        // var _testEl = Polymer.dom(_zone).parentNode.parentNode;
+        // console.log(_testEl);
+        this.hover = true;
+      },
+      _removeHighlight:function(){
+        this.hover = false;
+      }
+    };
+</script>
+<dom-module id="simple-zone">
+    <template>
+        <style>
+             :host {
+                 display: block;
+                 height: 20px;
+                 border:1px solid blue;
+            }
+        </style>
+        <content></content>
+    </template>
+    <script>
+        Polymer({
+            is: 'simple-zone',
+            properties:{
+              minValue:{
+                type: Number,
+                reflectToAttribute: true
+              },
+              maxValue:{
+                type: Number,
+                reflectToAttribute: true
+              },
+                hasReachedMaxLimit:{
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                hasReachedMinLimit:{
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                }
+
+            },
+            checkLimitReached:function(position){
+                if(position === 0){
+                    this.hasReachedMinLimit = true;
+                    console.log("min limit touched "+this.hasReachedMinLimit);
+                    return;
+                }else if(position === this.getBoundingClientRect().width){
+                    this.hasReachedMaxLimit = true;
+                    console.log("max limit touched "+this.hasReachedMaxLimit);
+                    return;
+                }else{
+                    this.hasReachedMinLimit = false;
+                    this.hasReachedMaxLimit = false;
+                    return;
+                }
+
+            }
+
+        });
+  </script>
+</dom-module>
+
+<dom-module id="simple-el">
+    <template>
+        <style>
+             :host {
+              display: block;
+            }
+            :host[hover] > .item{
+              stroke:blue;
+              fill:blue;
+            }
+            :host[is-selected] > .item{
+              stroke: orange;
+              fill: orange;
+            }
+            :host[is-selected][hover] > .item{
+              stroke: rgba(255,153,0,0.3);
+              fill: rgba(255,153,0,0.3);
+            }
+            .item{
+                position: absolute;
+                margin-left: -10px;
+                height: 20px;
+                width:  20px;
+                stroke: black;
+                fill: black;
+            }
+            .highlighted{
+                fill: rgba(0,0,255,0.5);
+            }
+            .value {
+              position: absolute;
+              background-color: #7CADAD;
+              color: #EEEEEE;
+              padding: 3px;
+              width: auto;
+              height: auto;
+              margin-left: -12px;
+              font: 11px arial, sans-serif;
+              border: .5px solid;
+              border-radius: 10px;
+            }
+        </style>
+        <div class="value"
+              style$="left:{{position}}px; display:{{visibility}}; top:{{topPos}}px"
+              >{{value}}</div>
+        <svg class="item"
+             style$="left:{{position}}px">
+            <polygon points="5,5 5,15 15,15 15,5">
+        </svg>
+    </template>
+    <script>
+        Polymer({
+            is: 'simple-el',
+            behaviors: [HighlightBehavior],
+            listeners: {
+                mousedown: '_handleDown'
+            },
+            properties: {
+                position: {
+                    type: Number,
+                    notify:true
+                },
+                isDragging: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true
+                },
+                isSelected: {
+                    type: Boolean,
+                    value: false,
+                    reflectToAttribute: true,
+                    notify:true
+                },
+                topPos:{
+                  type: Number,
+                  reflectToAttribute: true
+                },
+                _startX:{
+                    type: Number,
+                    value: 0
+                },
+                uid: {
+                    type:String,
+                    reflectToAttribute:true
+                },
+                value: {
+                  type:Number,
+                  notify:true,
+                  reflectToAttribute:true
+                }
+            },
+            attached:function(){
+              var _zone = Polymer.dom(this).parentNode;
+              this.position = Math.round((this.value*_zone.getBoundingClientRect().width)/(_zone.maxValue));
+            },
+            _updatePositionAndValue(position){
+              this.position = position;
+              var _zone = Polymer.dom(this).parentNode;
+              this.value = Math.round((position*(_zone.maxValue))/(_zone.getBoundingClientRect().width));
+            },
+            _handleDown: function(e){
+                e.preventDefault();
+                // this._startX = e.detail.x;
+                this._startX = e.pageX;
+                //this._getDeltaBetweenSelectedChildren();
+                // this.listen(this, 'track', '_handleMove');
+                // this.listen(this, 'up', '_handleUp');
+                this.listen(this, 'mousemove', '_handleMove');
+                this.listen(this, 'mouseup', '_handleUp');
+                this.visibility = "block";
+                e.stopPropagation();
+            },
+            _handleMove: function(e){
+              e.preventDefault();
+                // var deltaX = e.detail.x - this._startX;
+                var deltaX = e.pageX - this._startX;
+                var _parent = Polymer.dom(this).parentNode;
+                var _children = Polymer.dom(_parent).querySelectorAll("simple-el");
+                for(var i=0;i<_children.length;i++){
+                    if(_children[i].isSelected){
+                        if(!_children[i].isDragging){
+                        _children[i].isDragging = true;
+                        }
+                        var newPosition = _children[i].position + deltaX;
+                        if(newPosition >= 0 && newPosition <= _parent.getBoundingClientRect().width){
+                            if(!_parent.hasReachedMaxLimit && !_parent.hasReachedMinLimit){
+                              _children[i]._updatePositionAndValue(newPosition);
+                              _parent.checkLimitReached(_children[i].position);
+                            }
+                            if(_parent.hasReachedMaxLimit && (deltaX < 0)){
+                              _children[i]._updatePositionAndValue(newPosition);
+                              _parent.checkLimitReached(_children[i].position);
+                            }
+                            if(_parent.hasReachedMinLimit && (deltaX > 0)){
+                              _children[i]._updatePositionAndValue(newPosition);
+                              _parent.checkLimitReached(_children[i].position);
+                            }
+                        }
+                    }
+                }
+                // this._startX = e.detail.x;
+                this._startX = e.pageX;
+                e.stopPropagation();
+            },
+            _handleUp: function(e){
+              e.preventDefault();
+                var _children = Polymer.dom(Polymer.dom(this).parentNode).querySelectorAll("simple-el");
+                for(var i=0;i<_children.length;i++){
+                    if(_children[i].isDragging){
+                        _children[i].isDragging = false;
+                    }
+                }
+                this.visibility = "none";
+                // this.unlisten(this, 'track', '_handleMove');
+                // this.unlisten(this, 'up', '_handleUp');
+                this.unlisten(this, 'mousemove', '_handleMove');
+                this.unlisten(this, 'mouseup', '_handleUp');
+                e.stopPropagation();
+            },
+            _displayText:function(value){
+              if(value){
+                this.visibility = "block";
+              } else {
+                this.visibility = "none";
+              }
+            }
+        });
+  </script>
+</dom-module>
+  <script>
+    DraggableBehavior = {
+
+      properties: {
+        _startX:{
+          type:Number,
+          value:0,
+        },
+        _startY:{
+          type:Number,
+          value:0,
+        },
+        dragging:{
+          type:Boolean,
+          value:false
+        },
+        draggable:{
+          type:Boolean,
+          value:true
+        }
+      },
+      listeners: {
+        mousedown: '_handleDown'
+      },
+      _handleDown:function(e){
+        e.preventDefault();
+        this._startX = e.pageX;
+        this._startY = e.pageY;
+        this.listen(this, 'mousemove', '_handleMove');
+        this.listen(this, 'mouseup', '_handleUp');
+      },
+      _handleMove:function(e){
+        e.preventDefault();
+        var deltaX = e.pageX - this._startX;
+        var deltaY =  e.pageY - this._startY;
+        if(!this.dragging){
+          this.dragging = true;
+        }
+        var newX = e.currentTarget.getBoundingClientRect().left + deltaX;
+        var newY = e.currentTarget.getBoundingClientRect().top + deltaY;
+        this._updateCssPosition(e,newX,newY);
+        this._startX = e.pageX;
+        this._startY = e.pageY;
+      },
+      _handleUp:function(e){
+        e.preventDefault();
+        if(this.dragging){
+          this.dragging = false;
+        }
+        this.unlisten(this, 'mousemove', '_handleMove');
+        this.unlisten(this, 'mouseup', '_handleUp');
+      },
+      _updateCssPosition:function(e,leftValue,topValue){
+        e.currentTarget.style.left = leftValue+'px';
+        e.currentTarget.style.top =  topValue+'px';
+      }
+
+    };
+  </script>
+<dom-module id="thumb-el">
+  <template>
+    <style>
+      :host{
+        background: tomato;
+        padding: 5px;
+        width: 150px;
+        height: 150px;
+        margin-top: 10px;
+
+        line-height: 150px;
+        color: white;
+        font-weight: bold;
+        font-size: 3em;
+        text-align: center;
+      }
+      :host[selected]{
+        background: orange;
+      }
+      :host[selecting]{
+        background: yellow;
+      }
+    </style>
+    {{name}}
+  </template>
+  <script>
+    Polymer({
+      is:'thumb-el',
+      listeners: {
+        mousedown: '_handleDown',
+        mouseenter: '_handleEnter',
+        mouseleave: '_handleLeave'
+      },
+      properties:{
+        name:{
+          type: String,
+          value: '',
+          reflectToAttribute: true
+        },
+        selectable:{
+          type:Boolean,
+          value:false,
+          reflectToAttribute: true
+        },
+        selecting:{
+          type:Boolean,
+          value:false,
+          reflectToAttribute: true
+        },
+        selected:{
+          type:Boolean,
+          value:false,
+          reflectToAttribute: true,
+          observer:'_checkSelectStatus'
+        }
+      },
+      _checkSelectStatus:function(selected){
+        if(selected)
+          this.fire('select-thumb',{uidElement:this.name,selected:selected})
+        else
+          this.fire('select-thumb',{uidElement:this.name,selected:selected})
+      },
+      _handleDown:function(e){
+        if(this.selectable){
+          if(this.selected){
+            if(e.ctrlKey){
+              this.set('selected',false);
+            }
+          }else{
+            if(!e.ctrlKey){
+              var _zone = Polymer.dom(this).parentNode;
+              var _thumbNails = _zone.queryAllEffectiveChildren('thumb-el[selectable]')
+              for(var i=0;i<_thumbNails.length;i++){
+                if(!_thumbNails[i].selecting && _thumbNails[i].selected){
+                  _thumbNails[i].set('selecting',false);
+                  _thumbNails[i].set('selected',false);
+                }
+              }
+            }
+            this.set('selected',true);
+          }
+          e.stopPropagation();
+        }
+      },
+      _handleEnter:function(){
+        this.set('selecting',true);
+      },
+      _handleLeave:function(){
+        this.set('selecting',false);
+      }
+    })
+  </script>
+</dom-module>
+<dom-module id="viewer-el">
+  <template>
+    <style>
+    :host{
+      background: tomato;
+      padding: 5px;
+      width: 300px;
+      height: 300px;
+      margin-top: 10px;
+
+      line-height: 300px;
+      color: white;
+      font-weight: bold;
+      font-size: 3em;
+      text-align: center;
+    }
+    :host[hover]{
+      background: yellow;
+    }
+    </style>
+    {{name}}
+  </template>
+  <script>
+    Polymer({
+      is:'viewer-el',
+      properties:{
+        name:{
+          type: String,
+          value: '',
+          reflectToAttribute: true
+        },
+        hover:{
+          type: Boolean,
+          value:false,
+          reflectToAttribute:true,
+          notify:true
+        }
+      }
+    })
+  </script>
+</dom-module>
+<dom-module id="zone-el">
+  <template>
+    <style>
+      :host{
+        /*flex: 1;*/
+        /*display:flex;
+        justify-content: space-around;
+        flex-flow: row wrap;
+        height:100vh;*/
+        /*width: 100%;
+        height: 100%;*/
+        /*border:5px solid blue;*/
+        flex: 1;
+        display: flex;
+        flex-flow: row wrap;
+        justify-content: space-around;
+        /*background: blue;*/
+      }
+      :host > div.selector{
+        position: absolute;
+        background: rgba(0,0,255,0.3);
+      }
+
+    </style>
+    <content></content>
+  </template>
+  <script>
+    Polymer({
+      is: 'zone-el',
+      properties:{
+        _startX:{
+          type:Number,
+          value:0
+        },
+        _startY:{
+          type:Number,
+          value:0
+        }
+      },
+      listeners: {
+        mousedown: '_handleDown'
+      },
+      _handleDown:function(e){
+        e.preventDefault();
+        this._startX = e.pageX;
+        this._startY = e.pageY;
+        var selector = document.createElement('div');
+        selector.id = "boxselector";
+        selector.classList.add('selector');
+        Polymer.dom(this.root).appendChild(selector);
+        Polymer.dom.flush();
+        this.listen(this, 'mousemove', '_handleMove');
+        this.listen(this, 'mouseup', '_handleUp');
+      },
+      _handleMove:function(e){
+        e.preventDefault();
+        var endY = e.pageY;
+        var endX = e.pageX;
+        var box = this._createBoxSelector(this._startX,this._startY,endX,endY);
+        this._drawSeletor(this.$$('#boxselector'),box);
+        var thumbNails = this.queryAllEffectiveChildren('thumb-el[selectable]');
+        for(var i=0;i<thumbNails.length;i++){
+          var thumbNailBox = this._createBoxSelector(thumbNails[i].getBoundingClientRect().left,
+                                                     thumbNails[i].getBoundingClientRect().top,
+                                                     thumbNails[i].getBoundingClientRect().left+thumbNails[i].getBoundingClientRect().width,
+                                                     thumbNails[i].getBoundingClientRect().top+thumbNails[i].getBoundingClientRect().height);
+          var selectorBox = this._createBoxSelector(this._startX,this._startY,endX,endY);
+          if(this._overLap(thumbNailBox,selectorBox)){
+            if(!thumbNails[i].selecting)
+              thumbNails[i].set('selecting',true);
+          }else{
+            if(thumbNails[i].selecting)
+              thumbNails[i].set('selecting',false);
+          }
+        }
+
+      },
+      _handleUp:function(e){
+        e.preventDefault();
+
+        Polymer.dom(this.root).removeChild(this.$$('#boxselector'))
+        Polymer.dom.flush();
+        var selectorBox = this._createBoxSelector(this._startX,this._startY,e.pageX,e.pageY);
+        var thumbNails = this.queryAllEffectiveChildren('thumb-el[selectable]');
+        for(var i=0;i<thumbNails.length;i++){
+          var thumbNailBox = this._createBoxSelector(thumbNails[i].getBoundingClientRect().left,
+                                                     thumbNails[i].getBoundingClientRect().top,
+                                                     thumbNails[i].getBoundingClientRect().left+thumbNails[i].getBoundingClientRect().width,
+                                                     thumbNails[i].getBoundingClientRect().top+thumbNails[i].getBoundingClientRect().height);
+
+          if(!thumbNails[i].selecting){
+            thumbNails[i].set('selecting',false);
+            thumbNails[i].set('selected',false);
+          }else{
+            if (this._overLap(thumbNailBox,selectorBox)) {
+                if (!thumbNails[i].selected) {
+                  thumbNails[i].set('selected',true);
+                }
+            }
+          }
+          thumbNails[i].set('selecting',false);
+        }
+        this.unlisten(this, 'mousemove', '_handleMove');
+        this.unlisten(this, 'mouseup', '_handleUp');
+      },
+      _getSelectorElement:function(){
+        return this.queryEffectiveChildren('#selector');
+      },
+      _drawSeletor:function(selectorElement,box){
+        selectorElement.style.top = box.beginY+'px';
+        selectorElement.style.left = box.beginX+'px';
+        selectorElement.style.width = (box.endX - box.beginX)+'px';
+        selectorElement.style.height = (box.endY - box.beginY)+'px';
+      },
+      _createBoxSelector: function(startX,startY,endX,endY){
+        var box = {}
+        if(startX > endX){
+          box.beginX = endX;
+          box.endX = startX;
+        }else{
+          box.beginX = startX;
+          box.endX = endX;
+        }
+        if(startY > endY){
+          box.beginY = endY;
+          box.endY = startY;
+        }else{
+          box.beginY = startY;
+          box.endY = endY;
+        }
+        return box;
+      },
+      _overLap(thumbNail,selectorBox){
+        return (selectorBox.beginX <= thumbNail.endX && selectorBox.endX >= thumbNail.beginX) && (selectorBox.beginY <= thumbNail.endY && selectorBox.endY>= thumbNail.beginY)
+      }
+
+    })
+  </script>
+</dom-module>
+<dom-module id="sliders-zone">
+  <template>
+    <style>
+      :host{
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        background: white;
+      }
+    </style>
+    <content></content>
+  </template>
+  <script>
+    Polymer({
+      is:'sliders-zone',
+      behaviors: [DraggableBehavior]
+    })
+  </script>
+</dom-module>
+<dom-module id="app-el">
+  <template>
+    <style>
+      :host{
+        display: block;
+        height: 100vh;
+        /*overflow-y: hidden;*/
+      }
+      .toolbar{
+        background: rgba(50,0,255,0.6);
+      }
+      .toolbar .title{
+        display: inline-block;
+        padding: 20px 10px;
+        color: white;
+      }
+      .content{
+        background: #e5e5e5;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .selected-items{
+        display: flex;
+        flex-flow: row wrap;
+        justify-content: space-around;
+      }
+      sliders-zone > *{
+        padding: 15px 10px;
+      }
+    </style>
+    <div class="toolbar">
+      <span class="title">Models</span>
+    </div>
+    <div class="content">
+      <sliders-zone>
+        <template is="dom-repeat" items="{{params}}">
+          <div class="slider-parent"><test-el objects="{{item}}"></test-el></div>
+        </template>
+
+      </sliders-zone>
+      <div class="selected-items">
+        <template id="selectecthumbnails" is="dom-repeat"
+                                          items="{{objects}}"
+                                          filter="_isSelected" observe="selected">
+          <viewer-el name="{{item.uid}}"
+                     hover="{{item.hover}}"></viewer-el>
+        </template>
+      </div>
+      <zone-el on-select-thumb='_handleSelection'>
+        <template id="thumbnails" is="dom-repeat"
+                                  items="{{objects}}"
+                                  >
+          <thumb-el name="{{item.uid}}"
+                    selecting="{{item.hover}}"
+                    selected="{{item.selected}}"
+                    selectable></thumb-el>
+        </template>
+      </zone-el>
+    </div>
+
+  </template>
+  <script>
+    Polymer({
+      is:'app-el',
+      properties:{
+        params:{
+          type:Array,
+          value:function(){
+            return [
+              [{param:'param01',uid:'qwe',value:10},{param:'param01',uid:'asd',value:30},{param:'param01',uid:'zxc',value:50}],
+              [{param:'param02',uid:'qwe',value:56},{param:'param02',uid:'asd',value:67},{param:'param02',uid:'zxc',value:34}],
+              [{param:'param03',uid:'qwe',value:23},{param:'param03',uid:'asd',value:32},{param:'param03',uid:'zxc',value:65}],
+            ];
+          },
+          notify:true
+        },
+        objects:{
+          type:Array,
+          value:function(){
+            return [
+              {uid:'qwe'},
+              {uid:'ads'},
+              {uid:'zxc'}
+            ];
+          },
+          notify: true
+        }
+      },
+      observers:[
+        'paramHasChanged(params.*)'
+      ],
+      _handleSelection:function(e){
+        if(e.detail.selected){
+          console.log(e.detail)
+        }else{
+          console.log(e.detail)
+        }
+      },
+
+      paramHasChanged:function(cr){
+        // console.log(cr);
+      },
+      _isSelected:function(item){
+        return (item.selected == true)
+      }
+    })
+  </script>
+</dom-module>
+<app-el></app-el>
+
+</body>
+</html>

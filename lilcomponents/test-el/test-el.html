@@ -1,0 +1,79 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../simple-el/simple-el.html">
+<link rel="import" href="../simple-zone/simple-zone.html">
+<link rel="import" href="../simple-generator/simple-generator.html">
+<dom-module id="test-el">
+  <template>
+     <style>
+         :host {
+             display: block;
+             height: 60px;
+             width: 100%;
+             position: relative;
+         }
+         paper-button.fancy {
+            background: rgba(0,0,255,0.5);
+             color: white;
+         }
+    </style>
+    <simple-zone min-value="{{min}}" max-value="{{max}}">
+        <template  is="dom-repeat" items="{{objects}}">
+            <simple-el index="{{index}}"
+                        top-pos=-20
+                        value="{{item.value}}"
+                        ></simple-el>
+        </template>
+    </simple-zone>
+    <simple-generator>
+        <input type="number" min$={{min}} max$="{{max}}" value="{{str::change}}">
+        <paper-button class="fancy" on-tap="_addSimpleEl">Add user</paper-button>
+    </simple-generator>
+  </template>
+  <script>
+      Polymer({
+          is: 'test-el',
+          properties: {
+            min:{
+              type:Number,
+              value:0,
+              reflectToAttribute: true
+            },
+            max:{
+              type:Number,
+              value:100,
+              reflectToAttribute: true
+            },
+            objects: {
+              type: Array,
+                value:function(){
+                  return [
+                    {value:20},{value:60},{value:80}
+                  ];
+                },
+              notify:true
+            }
+
+          },
+          observers:['objectsPositionChanged(objects.*)'],
+          objectsPositionChanged:function(changeObject){
+            if(changeObject.path.includes("position")){
+                var nameSubpath = changeObject.path.indexOf('.position');
+                var itempath = changeObject.path.substring(0, nameSubpath);
+                var item = this.get(itempath);
+                var index = changeObject.base.indexOf(item);
+                console.log('Item ' + index + ' changed, new position is: ' + item.position);
+            }
+          },
+          _addSimpleEl:function(){
+              var pos =  parseInt(this.str);
+              this.push('objects', {value: pos});
+              this.str = '';
+          },
+
+          /*
+            {position: 40,value:40},{position: 60,value:60},{position: 80,value:80}
+          */
+    });
+  </script>
+</dom-module>
