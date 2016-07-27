@@ -27,7 +27,7 @@
     </style>
     <simple-zone min-value="{{min}}" max-value="{{max}}">
         <template  is="dom-repeat" items="{{objects}}">
-            <simple-el index="{{index}}"
+            <simple-el  uid="{{item.uid}}"
                         top-pos=-20
                         selected={{item.selected}}
                         selecting={{item.selecting}}
@@ -54,8 +54,7 @@
               type: Array,
                 value:function(){
                   return [];
-                },
-              notify:true
+                }
             }
 
           },
@@ -128,7 +127,8 @@
       _handleSelected:function(e){
           if(this.selected){
               if(e.ctrlKey){
-                  this.selected = false;
+                  // this.selected = false;
+                  this.set('selected',false);
                   this.visibility = "none";
               }
           }else{
@@ -136,12 +136,14 @@
                   var _children = Polymer.dom(Polymer.dom(this).parentNode).querySelectorAll("simple-el");
                   for (var i = 0; i < _children.length; i++) {
                           if( _children[i].selected === true){
-                              _children[i].selected = false;
+                              // _children[i].selected = false;
+                              _children[i].set('selected',false);
                           }
 
                   }
               }
-              this.selected = true;
+              // this.selected = true;
+              this.set('selected',true);
               this.visibility = "block";
           }
       },
@@ -150,7 +152,7 @@
         // var _testEl = Polymer.dom(_zone).parentNode.parentNode;
         // console.log(_testEl);
         this.set('selecting',true);
-        this.selecting = true;
+        // this.selecting = true;
       },
       _removeHighlight:function(){
         this.set('selecting',false);
@@ -255,10 +257,10 @@
             }
         </style>
         <div class="value"
-              style$="left:{{position}}px; display:{{visibility}}; top:{{topPos}}px"
+              style$="left:{{position}}px; display:{{visibility}}; top:{{topPos}}px;"
               >{{value}}</div>
         <svg class="item"
-             style$="left:{{position}}px">
+             style$="left:{{position}}px;z-index:{{zIndex}};">
             <polygon points="5,5 5,15 15,15 15,5">
         </svg>
     </template>
@@ -282,7 +284,8 @@
                     type: Boolean,
                     value: false,
                     reflectToAttribute: true,
-                    notify:true
+                    notify:true,
+                    observer:'_checkStatus'
                 },
                 topPos:{
                   type: Number,
@@ -300,7 +303,18 @@
                   type:Number,
                   notify:true,
                   reflectToAttribute:true
+                },
+                zIndex:{
+                  type:Number,
+                  value:0
                 }
+            },
+            _checkStatus:function(selected){
+              if(selected)
+                this.zIndex = 99;
+              else
+                this.zIndex = 0
+
             },
             attached:function(){
               var _zone = Polymer.dom(this).parentNode;
@@ -777,7 +791,8 @@
         }
       },
       observers:[
-        '_parametersCollectionChanged(parametersCollection.*)'
+        '_parametersCollectionChanged(parametersCollection.*)',
+        '_objectsPropertiesChanged(objects.*)'
       ],
       _parametersCollectionChanged:function(cr){
         if(cr.path.includes("value")){
@@ -788,14 +803,6 @@
             this.set('params.'+item.paramNumber,item.value,this.objects[i])
             this.notifyPath('objects.'+i+'.params.'+item.paramNumber);
         }
-        if(cr.path.includes("selected")){
-            var nameSubpath = cr.path.indexOf('.selected');
-            var itempath = cr.path.substring(0, nameSubpath);
-            var item = this.get(itempath);
-            var i = this._getItemIndex(item)
-            this.set('selected',item.selected,this.objects[i])
-            this.notifyPath('objects.'+i+'.selected');
-        }
         if(cr.path.includes("selecting")){
             var nameSubpath = cr.path.indexOf('.selecting');
             var itempath = cr.path.substring(0, nameSubpath);
@@ -804,8 +811,46 @@
             this.set('selecting',item.selecting,this.objects[i])
             this.notifyPath('objects.'+i+'.selecting');
         }
+        // if(cr.path.includes("selected")){
+        //     var nameSubpath = cr.path.indexOf('.selected');
+        //     var itempath = cr.path.substring(0, nameSubpath);
+        //     var item = this.get(itempath);
+        //     var i = this._getItemIndex(item)
+        //     this.set('selected',item.selected,this.objects[i])
+        //     this.notifyPath('objects.'+i+'.selected');
+        // }
+
+      },
+      _objectsPropertiesChanged:function(cr){
+        if(cr.path.includes("selected")){
+            var nameSubpath = cr.path.indexOf('.selected');
+            var itempath = cr.path.substring(0, nameSubpath);
+            var item = this.get(itempath);
+            for(var i=0;i<this.parametersCollection.length;i++){
+              for(var j=0;j<this.parametersCollection[i].collection.length;j++){
+                if(this.get('uid',this.parametersCollection[i].collection[j]) == item.uid){
+                  this.set('selected',item.selected,this.parametersCollection[i].collection[j])
+                  this.notifyPath('parametersCollection.'+i+'.collection.'+j+'.selected');
+                }
+              }
+            }
+        }
+        if(cr.path.includes("selecting")){
+            var nameSubpath = cr.path.indexOf('.selecting');
+            var itempath = cr.path.substring(0, nameSubpath);
+            var item = this.get(itempath);
+            for(var i=0;i<this.parametersCollection.length;i++){
+              for(var j=0;j<this.parametersCollection[i].collection.length;j++){
+                if(this.get('uid',this.parametersCollection[i].collection[j]) == item.uid){
+                  this.set('selecting',item.selecting,this.parametersCollection[i].collection[j])
+                  this.notifyPath('parametersCollection.'+i+'.collection.'+j+'.selecting');
+                }
+              }
+            }
+        }
       },
       behaviors: [DraggableBehavior],
+
       _toArray:function(jsonObject,uid){
         if(jsonObject){
           return Object.keys(jsonObject).map(function(key){
@@ -882,7 +927,7 @@
               filter="_isSelected" observe="selected">
       <viewer-el name="{{item.uid}}"
                  model="{{item}}"
-                 hover="{{item.hover}}"></viewer-el>
+                 hover="{{item.selecting}}"></viewer-el>
     </template>
   </template>
   <script>
@@ -896,6 +941,41 @@
       _isSelected:function(item){
         return (item.selected == true)
       }
+    })
+  </script>
+</dom-module>
+<dom-module id="de-bugger">
+  <template>
+    <style>
+      :host{
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        background: white;
+        align-items: center;
+      }
+    </style>
+    <template  is="dom-repeat" items="{{objects}}" >
+      <div>
+        uid:{{item.uid}} <br>
+        param01:{{item.params.param01}} <br>
+        param02:{{item.params.param02}} <br>
+        param03:{{item.params.param03}} <br>
+        selected:{{item.selected}} <br>
+        selecting:{{item.selecting}}
+      </div>
+    </template>
+  </template>
+  <script>
+    Polymer({
+      is:'de-bugger',
+      properties:{
+        objects:{
+          type:Array
+        }
+      },
+      behaviors: [DraggableBehavior],
     })
   </script>
 </dom-module>
@@ -943,18 +1023,7 @@
       <span class="title">Models</span>
     </div>
     <div class="content">
-      <div class="debugger">
-        <template  is="dom-repeat" items="{{objects}}" >
-          <div>
-            uid:{{item.uid}} <br>
-            param01:{{item.params.param01}} <br>
-            param02:{{item.params.param02}} <br>
-            param03:{{item.params.param03}} <br>
-            selected:{{item.selected}} <br>
-            selecting:{{item.selecting}}
-          </div>
-        </template>
-      </div>
+      <de-bugger objects="{{objects}}"></de-bugger>
       <sliders-zone objects="{{objects}}"></sliders-zone>
       <selected-thumbnails objects="{{objects}}"></selected-thumbnails>
       <zone-el objects="{{objects}}"></zone-el>
